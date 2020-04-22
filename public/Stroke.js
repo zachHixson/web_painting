@@ -149,18 +149,22 @@ function lerp(a, b, f){
     return a + f * (b - a);
 }
 
+function sample_spline(spline, fac){
+    let splinePos = fac * spline.length;
+    let splinePoint = Math.min(Math.floor(splinePos), spline.length - 2);
+    let subPos = splinePos % 1;
+    return new Vector2(
+            lerp(spline[splinePoint].x, spline[splinePoint + 1].x, subPos),
+            lerp(spline[splinePoint].y, spline[splinePoint + 1].y, subPos)
+    );
+}
+
 function multisample_spline(spline, samples){
     let newSpline = [];
 
-    for (let i = 0; i < samples; i++){
+    for (let i = 0; i < samples - 1; i++){
         let splineFac = i / samples;
-        let splinePos = splineFac * spline.length;
-        let splinePoint = Math.min(Math.floor(splinePos), spline.length - 2);
-        let subPos = splinePos % 1;
-        newSpline.push(new Vector2(
-            lerp(spline[splinePoint].x, spline[splinePoint + 1].x, subPos),
-            lerp(spline[splinePoint].y, spline[splinePoint + 1].y, subPos)
-        ));
+        newSpline.push(sample_spline(spline, splineFac));
     }
 
     return newSpline;
