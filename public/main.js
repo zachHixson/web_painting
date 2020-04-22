@@ -1,5 +1,5 @@
 import {Stroke} from "./Stroke.js";
-import {Vector2} from "./VectorLib.js";
+import {Vector2, VectorMath} from "./VectorLib.js";
 
 /*
 How it works:
@@ -11,6 +11,9 @@ How it works:
         - mousebuffer is broadcast to other clients to be added
 */
 
+const WORLD_DIMENSIONS = new Vector2(5000, 5000);
+
+let camera = new Vector2(0, 0);
 let randomSeed;
 let compCanvas;
 let bgBufferCanvas;
@@ -69,7 +72,7 @@ function updateBGBuffer(){
 
     for (let i = 0; i < strokes.length; i++){
         strokes[i].advanceTime();
-        strokes[i].drawStroke(bgCtx);
+        strokes[i].drawStroke(bgCtx, camera);
     }
 }
 
@@ -124,9 +127,14 @@ function receiveStrokes(strokeArr){
 
 function commitBuffer(){
     let drawCtx = drawBufferCanvas.getContext("2d");
+    let viewCorrectedPoints = [];
+
+    for (let i = 0; i < mouseBuffer.points.length; i++){
+        viewCorrectedPoints.push(VectorMath.Subtract(mouseBuffer.points[i], camera));
+    }
 
     if (mouseBuffer.points.length > 0) {
-        let newStroke = new Stroke(Stroke.getRandomType(randomSeed), mouseBuffer.points);
+        let newStroke = new Stroke(Stroke.getRandomType(randomSeed), viewCorrectedPoints);
         strokes.push(newStroke);
         socket.emit('commitBuffer', newStroke.simplify());
     }

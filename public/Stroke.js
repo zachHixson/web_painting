@@ -1,11 +1,10 @@
-import {Vector2} from "./VectorLib.js";
+import {Vector2, VectorMath} from "./VectorLib.js";
 export{Stroke};
 
 const STROKE_TYPES = [
     "cloud",
     "dirt",
-    "mushroom",
-    "flower"
+    "wind"
 ];
 
 class Stroke{
@@ -23,7 +22,7 @@ class Stroke{
     static getRandomType(seed){
         seed = Math.round(seed * 100) + 7879;
         //return STROKE_TYPES[seed % STROKE_TYPES.length];
-        return STROKE_TYPES[1];
+        return STROKE_TYPES[0];
     }
 
     advanceTime(){
@@ -37,26 +36,23 @@ class Stroke{
         };
     }
 
-    drawStroke(ctx){
+    drawStroke(ctx, cameraPos){
         switch (this.type){
             case "cloud":
-                this.drawCloud(ctx);
+                this.drawCloud(ctx, cameraPos);
                 break;
             case "dirt":
-                this.drawDirt(ctx);
+                this.drawDirt(ctx, cameraPos);
                 break;
-            case "mushroom":
-                this.drawMushRoom(ctx);
-                break;
-            case "flower":
-                this.drawCloud(ctx);
+            case "wind":
+                this.drawWind(ctx, cameraPos);
                 break;
             default:
-                this.drawDefault(ctx);
+                this.drawDefault(ctx, cameraPos);
         }
     }
 
-    drawCloud(ctx){
+    drawCloud(ctx, cameraPos){
         const CLOUD_MAX = 100;
         const CLOUD_RADIUS = 10;
         const CLOUD_PER_SEG = 5;
@@ -117,14 +113,15 @@ class Stroke{
 
         for (let i = 0; i < this.properties.raindrops.length; i++){
             let curDrop = this.properties.raindrops[i];
+            let viewTransformPos = VectorMath.Add(curDrop, cameraPos);
 
             curDrop.Add(RAIN_DIRECTION);
 
             ctx.beginPath();
-            ctx.moveTo(curDrop.x, curDrop.y);
+            ctx.moveTo(viewTransformPos.x, viewTransformPos.y);
             ctx.lineTo(
-                curDrop.x + (normalRainDir.x * RAIN_LENGTH),
-                curDrop.y + (normalRainDir.y * RAIN_LENGTH)
+                viewTransformPos.x + (normalRainDir.x * RAIN_LENGTH),
+                viewTransformPos.y + (normalRainDir.y * RAIN_LENGTH)
             );
             ctx.stroke();
         }
@@ -139,29 +136,36 @@ class Stroke{
             for (let m = 0; m < curCloud.micropoints.length; m++){
                 let xWave = Math.sin(curCloud.micropoints[m].x + (this.time * WIGGLE_SPEED) + 2574);
                 let yWave = Math.sin(curCloud.micropoints[m].y + (this.time * WIGGLE_SPEED) + 2589);
+                let viewTransformPos = VectorMath.Add(curCloud.micropoints[m], cameraPos);
 
                 draw_circle(ctx,
-                    curCloud.micropoints[m].x + xWave,
-                    curCloud.micropoints[m].y + yWave,
+                    viewTransformPos.x + xWave,
+                    viewTransformPos.y + yWave,
                     MICROPOINT_RAD * ease_back(curCloud.sizeFac, 1.8)
                 );
             }
         }
     }
 
-    drawDirt(ctx){
+    drawDirt(ctx, cameraPos){
+        const DIR_MAX = 50;
+        const DIRT_PER_SEG = 2;
+
+        if (this.properties == null){
+            let sampledSpline = multisample_spline(this.points, DIRT_PER_SEG)
+
+            this.properties = {
+                dirtpoints : [],
+                lifePoints : []
+            }
+        }
+    }
+
+    drawWind(ctx, cameraPos){
         //
     }
 
-    drawMushRoom(ctx){
-        //
-    }
-
-    drawFlower(ctx){
-        //
-    }
-
-    drawDefault(ctx){
+    drawDefault(ctx, cameraPos){
         //
     }
 }
