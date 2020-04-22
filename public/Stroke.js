@@ -23,11 +23,11 @@ class Stroke{
     static getRandomType(seed){
         seed = Math.round(seed * 100) + 7879;
         //return STROKE_TYPES[seed % STROKE_TYPES.length];
-        return STROKE_TYPES[0];
+        return STROKE_TYPES[1];
     }
 
     advanceTime(){
-        this.time += 0.1;
+        this.time += 1;
     }
 
     simplify(){
@@ -43,10 +43,10 @@ class Stroke{
                 this.drawCloud(ctx);
                 break;
             case "dirt":
-                this.drawCloud(ctx);
+                this.drawDirt(ctx);
                 break;
             case "mushroom":
-                this.drawCloud(ctx);
+                this.drawMushRoom(ctx);
                 break;
             case "flower":
                 this.drawCloud(ctx);
@@ -62,7 +62,15 @@ class Stroke{
         const CLOUD_PER_SEG = 5;
         const MICROPOINT_MAX = 20;
         const MICROPOINT_RAD = 10;
+        const WIGGLE_SPEED = 0.05;
+        const RAIN_PER_FRAME = 1;
+        const MAX_RAIN = 100;
+        const RAIN_DIRECTION = new Vector2(-0.1, 1);
+        const RAIN_LENGTH = 20;
 
+        let normalRainDir = RAIN_DIRECTION.GetNormalized();
+
+        //initialize stroke
         if (this.properties == null){
             let cloudCount = Math.min((CLOUD_PER_SEG * this.points.length), CLOUD_MAX);
             let sampledSpline = multisample_spline(this.points, cloudCount);
@@ -94,6 +102,33 @@ class Stroke{
             }
         }
 
+        //process rain
+        ctx.strokeStyle = "#4acdff";
+        ctx.lineWidth = 2;
+        for (let i = 0; i < RAIN_PER_FRAME; i++){
+            this.properties.raindrops.push(
+                sample_spline(this.points, Math.random())
+            );
+        }
+
+        if (this.properties.raindrops.length > MAX_RAIN){
+            this.properties.raindrops.splice(0, RAIN_PER_FRAME);
+        }
+
+        for (let i = 0; i < this.properties.raindrops.length; i++){
+            let curDrop = this.properties.raindrops[i];
+
+            curDrop.Add(RAIN_DIRECTION);
+
+            ctx.beginPath();
+            ctx.moveTo(curDrop.x, curDrop.y);
+            ctx.lineTo(
+                curDrop.x + (normalRainDir.x * RAIN_LENGTH),
+                curDrop.y + (normalRainDir.y * RAIN_LENGTH)
+            );
+            ctx.stroke();
+        }
+
         //process clouds
         ctx.fillStyle = "#585858";
         for (let i = 0; i < this.properties.clouds.length; i++){
@@ -102,8 +137,8 @@ class Stroke{
             curCloud.sizeFac = Math.min(curCloud.sizeFac + 0.03, 1);
 
             for (let m = 0; m < curCloud.micropoints.length; m++){
-                let xWave = Math.sin(curCloud.micropoints[m].x + this.time + 2574);
-                let yWave = Math.sin(curCloud.micropoints[m].y + this.time + 2589);
+                let xWave = Math.sin(curCloud.micropoints[m].x + (this.time * WIGGLE_SPEED) + 2574);
+                let yWave = Math.sin(curCloud.micropoints[m].y + (this.time * WIGGLE_SPEED) + 2589);
 
                 draw_circle(ctx,
                     curCloud.micropoints[m].x + xWave,
