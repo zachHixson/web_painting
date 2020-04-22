@@ -1,0 +1,16 @@
+{
+  "name": "web_painting",
+  "version": "0.0.1",
+  "description": "allows people to collaboratively paint over the internet",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "zach",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^2.3.0"
+  }
+}
