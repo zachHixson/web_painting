@@ -54,40 +54,34 @@ class Stroke{
     drawCloud(ctx){
         const CLOUD_MAX = 100;
         const CLOUD_RADIUS = 10;
+        const CLOUD_PER_SEG = 2;
         const MICROPOINT_MAX = 20;
         const MICROPOINT_RAD = 10;
 
-        let cloudCount = Math.min((3 * this.points.length), CLOUD_MAX);
-
         if (this.properties == null){
+            let cloudCount = Math.min((CLOUD_PER_SEG * this.points.length), CLOUD_MAX);
+            let newSpline = multisample_spline(this.points, cloudCount);
+
             this.properties = {
                 clouds : [],
                 raindrops : []
             }
 
             //Creates a clouds
-            for (let i = 0; i < cloudCount; i++){
-                let splineFac = i / cloudCount;
-                let splinePos = splineFac * this.points.length;
-                let splinePoint = Math.min(Math.floor(splinePos), this.points.length - 2);
-                let subPos = splinePos % 1;
-                let curPos = new Vector2(
-                    lerp(this.points[splinePoint].x, this.points[splinePoint + 1].x, subPos),
-                    lerp(this.points[splinePoint].y, this.points[splinePoint + 1].y, subPos)
-                );
+            for (let i = 0; i < newSpline.length; i++){
                 let micropoints = [];
 
                 for (let m = 0; m < MICROPOINT_MAX; m++){
                     micropoints.push(
                         new Vector2(
-                            curPos.x + (pos_neg_rand() * CLOUD_RADIUS),
-                            curPos.y + pos_neg_rand() * CLOUD_RADIUS
+                            newSpline[i].x + (pos_neg_rand() * CLOUD_RADIUS),
+                            newSpline[i].y + pos_neg_rand() * CLOUD_RADIUS
                         )
                     );
                 }
 
                 this.properties.clouds.push({
-                    position : curPos,
+                    position : newSpline[i],
                     micropoints : micropoints,
                     sizeFac : 0
                 });
@@ -140,4 +134,21 @@ function pos_neg_rand(){
 
 function lerp(a, b, f){
     return a + f * (b - a);
+}
+
+function multisample_spline(spline, samples){
+    let newSpline = [];
+
+    for (let i = 0; i < samples; i++){
+        let splineFac = i / samples;
+        let splinePos = splineFac * spline.length;
+        let splinePoint = Math.min(Math.floor(splinePos), spline.length - 2);
+        let subPos = splinePos % 1;
+        newSpline.push(new Vector2(
+            lerp(spline[splinePoint].x, spline[splinePoint + 1].x, subPos),
+            lerp(spline[splinePoint].y, spline[splinePoint + 1].y, subPos)
+        ));
+    }
+
+    return newSpline;
 }
