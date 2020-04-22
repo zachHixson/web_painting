@@ -72,8 +72,13 @@ function updateBGBuffer(){
     let bgCtx = bgBufferCanvas.getContext("2d");
 
     for (let i = 0; i < strokes.length; i++){
+        strokes[i].environment = strokes;
         strokes[i].advanceTime();
         strokes[i].drawStroke(bgCtx, camera);
+
+        if (!strokes[i].isAlive){
+            strokes.splice(i, 1);
+        }
     }
 }
 
@@ -128,6 +133,7 @@ function receiveStrokes(strokeArr){
 
 function commitBuffer(){
     let drawCtx = drawBufferCanvas.getContext("2d");
+    let bgCtx = bgBufferCanvas.getContext("2d");
     let viewCorrectedPoints = [];
 
     for (let i = 0; i < mouseBuffer.points.length; i++){
@@ -136,6 +142,8 @@ function commitBuffer(){
 
     if (mouseBuffer.points.length > 0) {
         let newStroke = new Stroke(Stroke.getRandomType(randomSeed), viewCorrectedPoints);
+        newStroke.environment = strokes;
+        newStroke.drawStroke(bgCtx, camera);
         strokes.push(newStroke);
         socket.emit('commitBuffer', newStroke.simplify());
     }
