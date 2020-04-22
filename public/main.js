@@ -44,6 +44,7 @@ window.onload = function(){
     });
 
     randomSeed = Math.random();
+    console.log(Stroke.getRandomType(randomSeed));
 
     main()
     window.requestAnimationFrame(function(){main()})

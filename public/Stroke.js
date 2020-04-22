@@ -21,8 +21,8 @@ class Stroke{
 
     static getRandomType(seed){
         seed = Math.round(seed * 100) + 7879;
-        //return STROKE_TYPES[seed % STROKE_TYPES.length];
-        return STROKE_TYPES[0];
+        return STROKE_TYPES[seed % STROKE_TYPES.length];
+        return STROKE_TYPES[1];
     }
 
     advanceTime(){
@@ -148,16 +148,25 @@ class Stroke{
     }
 
     drawDirt(ctx, cameraPos){
-        const DIR_MAX = 50;
-        const DIRT_PER_SEG = 2;
+        const DIRT_MAX = 50;
+        const DIRT_PER_SEG = 4;
+        const DIRT_RADIUS = 20;
 
         if (this.properties == null){
-            let sampledSpline = multisample_spline(this.points, DIRT_PER_SEG)
+            let sampleCount = Math.min(DIRT_PER_SEG * this.points.length, DIRT_MAX);
+            let sampledSpline = multisample_spline(this.points, sampleCount);
 
             this.properties = {
-                dirtpoints : [],
+                dirtpoints : sampledSpline,
                 lifePoints : []
-            }
+            };
+        }
+
+        //draw dirt
+        ctx.fillStyle = "#8a4200";
+        for (let i = 0; i < this.properties.dirtpoints.length; i++){
+            let curDirt = this.properties.dirtpoints[i];
+            draw_circle(ctx, curDirt.x, curDirt.y, DIRT_RADIUS);
         }
     }
 
