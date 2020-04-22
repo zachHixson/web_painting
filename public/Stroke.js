@@ -13,6 +13,7 @@ class Stroke{
         this.type = type;
         this.points = pointArr;
         this.properties = null;
+        this.time = 0;
     }
 
     static get TYPES(){
@@ -23,6 +24,10 @@ class Stroke{
         seed = Math.round(seed * 100) + 7879;
         //return STROKE_TYPES[seed % STROKE_TYPES.length];
         return STROKE_TYPES[0];
+    }
+
+    advanceTime(){
+        this.time += 0.1;
     }
 
     simplify(){
@@ -54,13 +59,13 @@ class Stroke{
     drawCloud(ctx){
         const CLOUD_MAX = 100;
         const CLOUD_RADIUS = 10;
-        const CLOUD_PER_SEG = 2;
+        const CLOUD_PER_SEG = 5;
         const MICROPOINT_MAX = 20;
         const MICROPOINT_RAD = 10;
 
         if (this.properties == null){
             let cloudCount = Math.min((CLOUD_PER_SEG * this.points.length), CLOUD_MAX);
-            let newSpline = multisample_spline(this.points, cloudCount);
+            let sampledSpline = multisample_spline(this.points, cloudCount);
 
             this.properties = {
                 clouds : [],
@@ -68,20 +73,21 @@ class Stroke{
             }
 
             //Creates a clouds
-            for (let i = 0; i < newSpline.length; i++){
+            for (let i = 0; i < sampledSpline.length; i++){
                 let micropoints = [];
 
-                for (let m = 0; m < MICROPOINT_MAX; m++){
+                //Create micropoints
+                for (let m = 0; m < Math.floor(Math.random() * MICROPOINT_MAX); m++){
                     micropoints.push(
                         new Vector2(
-                            newSpline[i].x + (pos_neg_rand() * CLOUD_RADIUS),
-                            newSpline[i].y + pos_neg_rand() * CLOUD_RADIUS
+                            sampledSpline[i].x + (pos_neg_rand() * CLOUD_RADIUS),
+                            sampledSpline[i].y + pos_neg_rand() * CLOUD_RADIUS
                         )
                     );
                 }
 
                 this.properties.clouds.push({
-                    position : newSpline[i],
+                    position : sampledSpline[i],
                     micropoints : micropoints,
                     sizeFac : 0
                 });
@@ -89,14 +95,21 @@ class Stroke{
         }
 
         //process clouds
-        ctx.fillStyle = "black";
+        ctx.fillStyle = "#585858";
         for (let i = 0; i < this.properties.clouds.length; i++){
             let curCloud = this.properties.clouds[i];
 
             curCloud.sizeFac = Math.min(curCloud.sizeFac + 0.03, 1);
 
             for (let m = 0; m < curCloud.micropoints.length; m++){
-                draw_circle(ctx, curCloud.micropoints[m].x, curCloud.micropoints[m].y, MICROPOINT_RAD * ease_back(curCloud.sizeFac, 1.8));
+                let xWave = Math.sin(curCloud.micropoints[m].x + this.time + 2574);
+                let yWave = Math.sin(curCloud.micropoints[m].y + this.time + 2589);
+
+                draw_circle(ctx,
+                    curCloud.micropoints[m].x + xWave,
+                    curCloud.micropoints[m].y + yWave,
+                    MICROPOINT_RAD * ease_back(curCloud.sizeFac, 1.8)
+                );
             }
         }
     }

@@ -68,6 +68,7 @@ function updateBGBuffer(){
     let bgCtx = bgBufferCanvas.getContext("2d");
 
     for (let i = 0; i < strokes.length; i++){
+        strokes[i].advanceTime();
         strokes[i].drawStroke(bgCtx);
     }
 }
