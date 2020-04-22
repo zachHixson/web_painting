@@ -16,7 +16,12 @@ io.origins("*:*");
 
 fs.readFile(STROKE_PATH, (err, data) => {
     if (err){
-        console.error(err);
+        if (!fs.existsSync(STROKE_PATH)){
+            saveStrokes();
+        }
+        else{
+            console.error(err);
+        }
         return;
     }
     
