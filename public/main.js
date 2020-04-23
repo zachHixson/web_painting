@@ -33,6 +33,17 @@ window.onload = function(){
     bgBufferCanvas = document.getElementById("backgroundBuffer");
     drawBufferCanvas = document.getElementById("drawBuffer");
 
+    bindEvents();
+
+    randomSeed = Math.random();
+    console.log(Stroke.getRandomType(randomSeed));
+
+    main()
+    window.requestAnimationFrame(function(){main()})
+}
+
+function bindEvents(){
+    //desktop events
     compCanvas.addEventListener("mousemove", updateDrawBuffer);
     compCanvas.addEventListener("mousedown", function(event){
         mouseDown = true;
@@ -43,11 +54,21 @@ window.onload = function(){
         commitBuffer();
     });
 
-    randomSeed = Math.random();
-    console.log(Stroke.getRandomType(randomSeed));
-
-    main()
-    window.requestAnimationFrame(function(){main()})
+    //mobile events
+    compCanvas.addEventListener('touchstart', function(event){
+        event.preventDefault()
+        updateDrawBuffer(event);
+    });
+    compCanvas.addEventListener("touchmove", function(event){
+        event.preventDefault()
+        mouseDown = true;
+        mouseBuffer.points.push(new Vector2(event.touches[0].clientX, event.touches[0].clientY));
+    });
+    window.addEventListener("touchend", function(event){
+        event.preventDefault()
+        mouseDown = false
+        commitBuffer();
+    });
 }
 
 function main(){

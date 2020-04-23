@@ -31,7 +31,7 @@ class Stroke{
     static getRandomType(seed){
         seed = Math.round(seed * 100) + 7879;
         //return STROKE_TYPES[seed % STROKE_TYPES.length];
-        return STROKE_TYPES[2];
+        return STROKE_TYPES[0];
     }
 
     advanceTime(){
@@ -422,7 +422,19 @@ class Stroke{
     }
 
     drawBirds(ctx, cameraPos){
-        //
+        const BIRD_MAX = 20;
+
+        if (this.properties == null){
+            let spawnPoints = multisample_spline(this.points, BIRD_MAX);
+
+            this.properties = {
+                birds : []
+            }
+
+            for (let i = 0; i < BIRD_MAX; i++){
+                //
+            }
+        }
     }
 
     drawDefault(ctx, cameraPos){
