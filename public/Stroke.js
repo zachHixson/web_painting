@@ -31,7 +31,7 @@ class Stroke{
     static getRandomType(seed){
         seed = Math.round(seed * 100) + 7879;
         //return STROKE_TYPES[seed % STROKE_TYPES.length];
-        return STROKE_TYPES[0];
+        return STROKE_TYPES[2];
     }
 
     advanceTime(){
@@ -75,6 +75,9 @@ class Stroke{
         const MAX_RAIN = 100;
         const RAIN_DIRECTION = new Vector2(-0.1, 1);
         const RAIN_LENGTH = 20;
+        const WIND_EFFECT_DISTANCE = 50;
+        const WIND_EFFECT_SPEED = 0.02;
+        const WIND_EFFECT_ON_CLOUD = 3;
 
         let normalRainDir = RAIN_DIRECTION.GetNormalized();
         this.lifeTime = CLOUD_LIFETIME;
@@ -114,6 +117,7 @@ class Stroke{
         if (this.isAlive){
             let curTime = new Date().getTime();
             let age = curTime - this.creationTime;
+            let windVectors = [];
 
             if (age < CLOUD_LIFETIME){
                 this.properties.sizeFac = Math.min(this.properties.sizeFac + 0.03, 1);
@@ -124,6 +128,19 @@ class Stroke{
                 if (this.properties.sizeFac <= 0){
                     this.isAlive = false;
                     return
+                }
+            }
+
+            //get all wind vectors
+            for (let s = 0; s < this.environment.length; s++){
+                if (this.environment[s].type == "wind"){
+                    for (let p = 0; p < this.environment[s].points.length - 1; p++){
+                        let direction = VectorMath.Subtract(this.environment[s].points[p], this.environment[s].points[p + 1]);
+                        windVectors.push({
+                            point : this.environment[s].points[p],
+                            direction : VectorMath.GetNormalized(direction)
+                        });
+                    }
                 }
             }
 
@@ -143,8 +160,18 @@ class Stroke{
             for (let i = 0; i < this.properties.raindrops.length; i++){
                 let curDrop = this.properties.raindrops[i];
                 let viewTransformPos = VectorMath.Add(curDrop, cameraPos);
+                let velocity = RAIN_DIRECTION;
 
-                curDrop.Add(RAIN_DIRECTION);
+                //factor in wind
+                for (let w = 0; w < windVectors.length; w++){
+                    if (VectorMath.GetDistance(windVectors[w].point, curDrop) < WIND_EFFECT_DISTANCE){
+                        velocity.Subtract(VectorMath.Scale(windVectors[w].direction, WIND_EFFECT_SPEED));
+                    }
+                }
+
+                //debugger
+
+                curDrop.Add(velocity);
 
                 ctx.beginPath();
                 ctx.moveTo(viewTransformPos.x, viewTransformPos.y);
@@ -159,11 +186,25 @@ class Stroke{
             ctx.fillStyle = "#585858";
             for (let i = 0; i < this.properties.clouds.length; i++){
                 let curCloud = this.properties.clouds[i];
+                let windVelocity = new Vector2(0, 0);
+
+                //factor in wind
+                for (let w = 0; w < windVectors.length; w++){
+                    if (VectorMath.GetDistance(windVectors[w].point, curCloud.position) < WIND_EFFECT_DISTANCE){
+                        windVelocity.Add(windVectors[w].direction);
+                    }
+                }
+
+                windVelocity.GetNormalized();
+                windVelocity.Scale(WIND_EFFECT_SPEED * WIND_EFFECT_ON_CLOUD);
 
                 for (let m = 0; m < curCloud.micropoints.length; m++){
                     let xWave = Math.sin(curCloud.micropoints[m].x + (this.time * WIGGLE_SPEED) + 2574);
                     let yWave = Math.sin(curCloud.micropoints[m].y + (this.time * WIGGLE_SPEED) + 2589);
-                    let viewTransformPos = VectorMath.Add(curCloud.micropoints[m], cameraPos);
+                    let viewTransformPos;
+
+                    curCloud.micropoints[m].Subtract(windVelocity);
+                    viewTransformPos = VectorMath.Add(curCloud.micropoints[m], cameraPos);
 
                     draw_circle(ctx,
                         viewTransformPos.x + xWave,
@@ -297,7 +338,87 @@ class Stroke{
     }
 
     drawWind(ctx, cameraPos){
-        //
+        const RAND_PARTICLE_OFFSET = 20;
+        const MAX_PARTICLES = 20;
+        const FRAME_BETWEEN_PARTICLES = 1;
+        const WIND_SPEED = 0.1;
+        const WIND_LENGTH = 0.4;
+        const WIND_LIFETIME = 5000;
+
+        let nearestPoint = this.points[0];
+        let curTime = new Date().getTime();
+        let age = curTime - this.creationTime;
+
+        if (this.properties == null){
+            this.properties = {
+                particle_timer : 0,
+                particles : []
+            }
+
+            this.lifeTime = WIND_LIFETIME;
+        }
+
+        if (age > this.lifeTime){
+            if (this.properties.particles.length <= 0){
+                this.isAlive = false;
+            }
+            else{
+                this.properties.particles.pop();
+            }
+        }
+
+        //Spawn particles
+        if (this.properties.particle_timer > FRAME_BETWEEN_PARTICLES){
+            let splinePoint = sample_spline(this.points, Math.random());
+            splinePoint.AddScalar(pos_neg_rand() * RAND_PARTICLE_OFFSET);
+            this.properties.particles.push({
+                point : splinePoint,
+                direction : new Vector2(0, 0)
+            });
+
+            if (this.properties.particles.length > MAX_PARTICLES){
+                this.properties.particles.shift();
+            }
+
+            this.properties.particle_timer = 0;
+        }
+        else{
+            this.properties.particle_timer += 1;
+        }
+
+        //Draw particles
+        ctx.strokeStyle = "green";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < this.properties.particles.length; i++){
+            let curParticle = this.properties.particles[i];
+            let closestPointIdx = 0;
+            let closestDistance = VectorMath.GetDistance(curParticle.point, this.points[0]);
+            let viewTransformPos = VectorMath.Add(curParticle.point, cameraPos);
+
+            //get nearest spline point (excluding last point)
+            for (let p = 1; p < this.points.length - 1; p++){
+                let checkDist = VectorMath.GetDistance(curParticle.point, this.points[p])
+                if (checkDist < closestDistance){
+                    closestPointIdx = p;
+                    closestDistance = checkDist;
+                }
+            }
+
+            if (closestDistance < 20){
+                curParticle.direction = VectorMath.Subtract(this.points[closestPointIdx], this.points[closestPointIdx + 1]);
+                curParticle.direction.GetNormalized();
+            }
+
+            curParticle.point.Subtract(VectorMath.Scale(curParticle.direction, WIND_SPEED));
+
+            ctx.beginPath();
+            ctx.moveTo(viewTransformPos.x, viewTransformPos.y);
+            ctx.lineTo(
+                viewTransformPos.x - (curParticle.direction.x * WIND_LENGTH),
+                viewTransformPos.y - (curParticle.direction.y * WIND_LENGTH)
+            );
+            ctx.stroke();
+        }
     }
 
     drawBirds(ctx, cameraPos){

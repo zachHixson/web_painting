@@ -37,8 +37,8 @@ class VectorMath{
 
       static Scale(_vector, _scalar){
             return new Vector2(
-                  _vector.x *= _scalar,
-                  _vector.y *= _scalar,
+                  _vector.x * _scalar,
+                  _vector.y * _scalar,
             );
       }
 
@@ -75,8 +75,8 @@ class VectorMath{
       static GetNormalized(_vector){
             var magnitude = this.GetMagnitude(_vector);
             return new Vector2(
-                  _vector.x /= magnitude,
-                  _vector.y /= magnitude
+                  _vector.x / magnitude,
+                  _vector.y / magnitude
             );
       }
 
@@ -123,7 +123,7 @@ class Vector2{
 
       AddScalar(_scalar){
           this.SetVector(
-              VectorMath.AddScalar(_scalar)
+              VectorMath.AddScalar(this, _scalar)
           );
       }
 
