@@ -42,6 +42,9 @@ window.onload = function(){
     bgBufferCanvas = document.getElementById("backgroundBuffer");
     drawBufferCanvas = document.getElementById("drawBuffer");
 
+    //set canvas width and height
+    setScreenDimensions();
+
     camera = new Camera();
     camera.bounds.x = compCanvas.width;
     camera.bounds.y = compCanvas.height;
@@ -49,9 +52,6 @@ window.onload = function(){
     mouse.y = compCanvas.height / 2;
 
     bindEvents();
-
-    //set canvas width and height
-    setScreenDimensions();
 
     randomSeed = Math.random();
     console.log(Stroke.getRandomType(randomSeed));
@@ -137,7 +137,7 @@ function updateBGBuffer(){
     bgCtx.strokeStyle = "#aca8ff";
     bgCtx.lineWidth = 1;
     for (let x = 0; x < (bgBufferCanvas.width / GRID_SIZE); x++){
-        let modValue = (bgBufferCanvas.width + (GRID_SIZE / 2))
+        let modValue = (bgBufferCanvas.width + (GRID_SIZE / 2));
         let adjustedCameraX = camera.position.x % modValue;
         let xPos;
 
