@@ -66,4 +66,8 @@ class Utils{
     static format_rgb(r, g, b){
         return "rgb(" + r + "," + g + "," + b + ")";
     }
+
+    static clamp(val, min, max){
+        return Math.max(Math.min(val, max), min);
+    }
 }

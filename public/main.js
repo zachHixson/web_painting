@@ -1,6 +1,7 @@
 import {Stroke} from "./Stroke.js";
 import {Vector2, VectorMath} from "./VectorLib.js";
 import {Camera} from "./Camera.js";
+import {Utils} from "./utils.js"
 
 /*
 How it works:
@@ -21,7 +22,11 @@ let randomSeed;
 let compCanvas;
 let bgBufferCanvas;
 let drawBufferCanvas;
-let mouseDown = false;
+let mouse = {
+    mouseDown : false,
+    x : 0,
+    y : 0
+};
 let time = 0;
 let strokes = [];
 let mouseBuffer = {
@@ -40,8 +45,13 @@ window.onload = function(){
     camera = new Camera();
     camera.bounds.x = compCanvas.width;
     camera.bounds.y = compCanvas.height;
+    mouse.x = compCanvas.width / 2;
+    mouse.y = compCanvas.height / 2;
 
     bindEvents();
+
+    //set canvas width and height
+    setScreenDimensions();
 
     randomSeed = Math.random();
     console.log(Stroke.getRandomType(randomSeed));
@@ -50,15 +60,26 @@ window.onload = function(){
     window.requestAnimationFrame(function(){main()})
 }
 
+function setScreenDimensions(){
+    const SCALE_FAC = 0.98;
+
+    compCanvas.width = window.innerWidth * SCALE_FAC;
+    bgBufferCanvas.width = window.innerWidth * SCALE_FAC;
+    drawBufferCanvas.width = window.innerWidth * SCALE_FAC;
+    compCanvas.height = window.innerHeight * SCALE_FAC;
+    bgBufferCanvas.height = window.innerHeight * SCALE_FAC;
+    drawBufferCanvas.height = window.innerHeight * SCALE_FAC;
+}
+
 function bindEvents(){
     //desktop events
-    compCanvas.addEventListener("mousemove", updateDrawBuffer);
+    compCanvas.addEventListener("mousemove", onMouseMove);
     compCanvas.addEventListener("mousedown", function(event){
-        mouseDown = true;
+        mouse.mouseDown = true;
         mouseBuffer.points.push(new Vector2(event.offsetX, event.offsetY));
     });
     window.addEventListener("mouseup", function(event){
-        mouseDown = false
+        mouse.mouseDown = false
         commitBuffer();
     });
 
@@ -69,7 +90,7 @@ function bindEvents(){
     });
     compCanvas.addEventListener("touchmove", function(event){
         event.preventDefault()
-        mouseDown = true;
+        mouse.mouseDown = true;
         mouseBuffer.points.push(new Vector2(event.touches[0].clientX, event.touches[0].clientY));
     });
     window.addEventListener("touchend", function(event){
@@ -77,6 +98,15 @@ function bindEvents(){
         mouseDown = false
         commitBuffer();
     });
+
+    window.onresize = function(){setScreenDimensions()}
+}
+
+function onMouseMove(event){
+    mouse.x = event.offsetX;
+    mouse.y = event.offsetY;
+    updateCamera();
+    updateDrawBuffer(event);
 }
 
 function main(){
@@ -85,6 +115,7 @@ function main(){
         let compCtx = compCanvas.getContext("2d");
         let bgCtx = bgBufferCanvas.getContext("2d");
 
+        updateCamera();
         updateBGBuffer();
 
         //comp canvases
@@ -154,7 +185,7 @@ function updateDrawBuffer(event){
 
     drawBuff.clearRect(0, 0, drawBufferCanvas.width, drawBufferCanvas.height);
 
-    if (mouseDown){
+    if (mouse.mouseDown){
         let curPos = new Vector2(event.offsetX, event.offsetY);
         let lastPos = mouseBuffer.points[mouseBuffer.points.length - 1];
 
@@ -185,6 +216,48 @@ function updateDrawBuffer(event){
             draw_circle(drawBuff, curPoint.x, curPoint.y, 5);
         }
     }
+}
+
+function updateCamera(){
+    const CONTROL_WIDTH = 50;
+    const CAMERA_SPEED = 2;
+
+    let ctx = drawBufferCanvas.getContext("2d");
+    
+    ctx.fillStyle = "rgba(128, 128, 128, 0.5)";
+
+    if (!mouse.mouseDown){
+        ctx.clearRect(0, 0, drawBufferCanvas.width, drawBufferCanvas.height);
+
+        if (mouse.x < CONTROL_WIDTH){
+            ctx.fillRect(0, 0, CONTROL_WIDTH, drawBufferCanvas.height);
+            camera.position.x += CAMERA_SPEED;
+        }
+
+        if (mouse.y < CONTROL_WIDTH){
+            ctx.fillRect(0, 0, drawBufferCanvas.width, CONTROL_WIDTH);
+            camera.position.y += CAMERA_SPEED;
+        }
+
+        if (mouse.x > drawBufferCanvas.width - CONTROL_WIDTH){
+            ctx.fillRect(
+                drawBufferCanvas.width - CONTROL_WIDTH, 0,
+                CONTROL_WIDTH, drawBufferCanvas.height
+            );
+            camera.position.x -= CAMERA_SPEED;
+        }
+
+        if (mouse.y > drawBufferCanvas.height - CONTROL_WIDTH){
+            ctx.fillRect(
+                0, drawBufferCanvas.height - CONTROL_WIDTH,
+                drawBufferCanvas.width, drawBufferCanvas.height
+            );
+            camera.position.y -= CAMERA_SPEED;
+        }
+    }
+
+    camera.position.x = Utils.clamp(camera.position.x, -WORLD_DIMENSIONS.x / 2, WORLD_DIMENSIONS.x / 2);
+    camera.position.y = Utils.clamp(camera.position.y, -WORLD_DIMENSIONS.y / 2, WORLD_DIMENSIONS.y / 2)
 }
 
 function receiveStrokes(strokeArr){

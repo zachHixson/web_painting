@@ -5,6 +5,11 @@
     const socket = io("http://192.168.10.101:3000")
 </script>
 <script type="module" src="main.js"></script>
+<script>
+    function clearAll(){
+        socket.emit('clearCanvas');
+    }
+</script>
 
 <html>
     <canvas id="compositeCanvas" width="500" height="500">
@@ -16,6 +21,4 @@
     <canvas id="drawBuffer" width="500" height="500" hidden>
         //Error loading html5
     </canvas>
-    <br />
-    <input type="button" value="Clear All" onclick="socket.emit('clearCanvas')" />
 </html>
