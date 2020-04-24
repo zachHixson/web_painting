@@ -427,14 +427,19 @@ class Stroke{
     }
 
     drawBirds(ctx, cameraPos){
-        const BIRD_MAX = 30;
-        const BIRD_PER_SEG = 2;
+        const BIRD_MAX = 50;
+        const BIRD_PER_SEG = 500;
+        const LIFETIME = 15000;
 
-        let birdCount = Math.min(BIRD_PER_SEG * this.points.length, BIRD_MAX)
+        let time = new Date().getTime();
+        let age = time - this.creationTime;
+        let birdCount = Math.min(BIRD_PER_SEG * this.points.length, BIRD_MAX);
 
         if (this.properties == null){
             let spawnPoints = Utils.multisample_spline(this.points, birdCount);
             let directions = Utils.get_directions_from_spline(spawnPoints);
+
+            this.lifeTime = LIFETIME;
 
             this.properties = {
                 birds : new Boids()
@@ -445,21 +450,33 @@ class Stroke{
             }
         }
 
-        this.properties.birds.update();
+        if (age > LIFETIME){
+            if (this.properties.birds.getLength() > 0){
+                this.properties.birds.popBoid();
+            }
+            else{
+                this.isAlive = false;
+            }
+        }
 
-        //draw birds
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 2;
-        for (let i = 0; i < this.properties.birds.length; i++){
-            let curBird = this.properties.birds.getBoid(i);
-            
-            ctx.beginPath();
-            ctx.moveTo(curBird.position.x, curBird.position.y);
-            ctx.lineTo(
-                curBird.position.x + (curBird.direction.x * 10),
-                curBird.position.y + (curBird.direction.y * 10)
-            );
-            ctx.stroke();
+        if (this.isAlive){
+            this.properties.birds.update();
+
+            //draw birds
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 2;
+            for (let i = 0; i < this.properties.birds.getLength(); i++){
+                let curBird = this.properties.birds.getBoid(i);
+
+                ctx.translate(curBird.position.x + cameraPos.x, curBird.position.y + cameraPos.y);
+                ctx.rotate(VectorMath.DirectionToAngle(curBird.direction) - (Math.PI / 2));
+                ctx.beginPath();
+                ctx.moveTo(-3, -3);
+                ctx.lineTo(0, 3);
+                ctx.lineTo(3, -3);
+                ctx.stroke();
+                ctx.resetTransform();
+            }
         }
     }
 

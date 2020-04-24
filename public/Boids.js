@@ -3,10 +3,11 @@ import {Vector2, VectorMath} from "./VectorLib.js";
 import {Utils} from "./utils.js";
 
 const VISION_RADIUS = 1000;
-const AVOID_RADIUS = 40;
-const MAX_AVOID_SPEED = 0.3;
-const FOV = 20;
-const CENTER_INFLUENCE = 50;
+const AVOID_RADIUS = 20;
+const AVOID_SPEED = 0.01;
+const TRAVEL_SPEED = 1.5;
+const FOV = 50;
+const CENTER_INFLUENCE = 0.01;
 
 class Boid{
     constructor(posVector = new Vector2(0, 0), dirVector = new Vector2(0, 0)){
@@ -15,57 +16,54 @@ class Boid{
     }
 
     update(selfIdx, otherBoids){
-        let centerPoint = new Vector2(0, 0);
-        let visibleBoids = 0;
-        let nearestBoid = (selfIdx > 0) ? otherBoids[0] : otherBoids[1];
-        let nearestBoidDist = VectorMath.GetDistance(this.position, nearestBoid.position);
-        let centerDirection;
-        let avoidFac = (AVOID_RADIUS - nearestBoidDist) / AVOID_RADIUS;
+        if (otherBoids.length > 1){
+            let centerPoint = new Vector2(0, 0);
+            let visibleBoids = 0;
+            let nearestBoid = (selfIdx > 0) ? otherBoids[0] : otherBoids[1];
+            if (nearestBoid == undefined){debugger};
+            let nearestBoidDist = VectorMath.GetDistance(this.position, nearestBoid.position);
+            let centerDirection;
+            let avoidFac = (AVOID_RADIUS - nearestBoidDist) / AVOID_RADIUS;
+            let curAngle = this.direction.GetAngle();
 
-        for (let i = 0; i < otherBoids.length; i++){
-            //Check if boid is in vision
-            if (
-                i != selfIdx &&
-                this.isInFOV(otherBoids[i].position) &&
-                VectorMath.GetDistance(this.position, otherBoids[i].position) < VISION_RADIUS
-            ){
-                let distance = VectorMath.GetDistance(this.position, otherBoids[i].position);
+            for (let i = 0; i < otherBoids.length; i++){
+                //Check if boid is in vision
+                if (
+                    i != selfIdx &&
+                    this.isInFOV(otherBoids[i].position) &&
+                    VectorMath.GetDistance(this.position, otherBoids[i].position) < VISION_RADIUS
+                ){
+                    let distance = VectorMath.GetDistance(this.position, otherBoids[i].position);
 
-                if (distance < nearestBoidDist){
-                    nearestBoid = otherBoids[i];
-                    nearestBoidDist = distance;
+                    if (distance < nearestBoidDist){
+                        nearestBoid = otherBoids[i];
+                        nearestBoidDist = distance;
+                    }
+
+                    centerPoint.Add(otherBoids[i].position);
+                    visibleBoids++;
                 }
-
-                centerPoint.Add(otherBoids[i].position);
-                visibleBoids++;
-            }
-        }
-
-
-        if (visibleBoids > 0){
-            centerPoint.Scale(1 / visibleBoids);
-            centerDirection = VectorMath.Subtract(centerPoint, this.position);
-            centerDirection.Scale(CENTER_INFLUENCE * (AVOID_RADIUS - nearestBoidDist));
-            this.direction.Add(centerDirection);
-        }
-
-        if (nearestBoidDist < AVOID_RADIUS){
-            let nearestDir = VectorMath.Subtract(this.position, nearestBoid.position);
-            let enemyAngle = nearestDir.GetAngle();
-            let thisAngle = this.direction.GetAngle();
-
-            if (enemyAngle > thisAngle){
-                thisAngle += Math.PI * avoidFac;
-            }
-            else{
-                thisAngle -= Math.PI * avoidFac;
             }
 
-            this.direction.SetVector(VectorMath.AngleToDirection(thisAngle));
-        }
+            if (visibleBoids > 0){
+                let centerDir = VectorMath.Subtract(centerPoint, this.position);
+                let centerAngle = centerDir.GetAngle();
 
-        this.direction.SetNormalized();
-        this.position.Add(this.direction);
+                curAngle += centerAngle * CENTER_INFLUENCE;
+            }
+
+            if (nearestBoidDist < AVOID_RADIUS){
+                let nearestDir = VectorMath.Subtract(nearestBoid.position, this.position);
+                let enemyAngle = nearestDir.GetAngle();
+
+                curAngle -= enemyAngle * avoidFac * AVOID_SPEED;
+            }
+
+            this.direction.SetVector(VectorMath.AngleToDirection(curAngle));
+            this.direction.SetNormalized();
+            this.direction.Scale(TRAVEL_SPEED)
+            this.position.Add(this.direction);
+        }
     }
 
     isInFOV(point){
@@ -94,8 +92,16 @@ class Boids{
         this.length++;
     }
 
+    popBoid(){
+        this.boids.pop();
+    }
+
     getBoid(i){
         return this.boids[i];
+    }
+
+    getLength(){
+        return this.boids.length;
     }
 
     update(){
