@@ -33,7 +33,7 @@ class Stroke{
     static getRandomType(seed){
         seed = Math.round(seed * 100) + 7879;
         //return STROKE_TYPES[seed % STROKE_TYPES.length];
-        return STROKE_TYPES[3];
+        return STROKE_TYPES[1];
     }
 
     advanceTime(){
@@ -49,26 +49,26 @@ class Stroke{
         };
     }
 
-    drawStroke(ctx, cameraPos){
+    drawStroke(ctx, camera){
         switch (this.type){
             case "cloud":
-                this.drawCloud(ctx, cameraPos);
+                this.drawCloud(ctx, camera);
                 break;
             case "dirt":
-                this.drawDirt(ctx, cameraPos);
+                this.drawDirt(ctx, camera);
                 break;
             case "wind":
-                this.drawWind(ctx, cameraPos);
+                this.drawWind(ctx, camera);
                 break;
             case "birds":
-                this.drawBirds(ctx, cameraPos);
+                this.drawBirds(ctx, camera);
                 break;
             default:
-                this.drawDefault(ctx, cameraPos);
+                this.drawDefault(ctx, camera);
         }
     }
 
-    drawCloud(ctx, cameraPos){
+    drawCloud(ctx, camera){
         const CLOUD_MAX = 100;
         const CLOUD_RADIUS = 10;
         const CLOUD_PER_SEG = 5;
@@ -164,7 +164,7 @@ class Stroke{
 
             for (let i = 0; i < this.properties.raindrops.length; i++){
                 let curDrop = this.properties.raindrops[i];
-                let viewTransformPos = VectorMath.Add(curDrop, cameraPos);
+                let viewTransformPos = VectorMath.Add(curDrop, camera.position);
                 let velocity = RAIN_DIRECTION;
 
                 //factor in wind
@@ -173,8 +173,6 @@ class Stroke{
                         velocity.Subtract(VectorMath.Scale(windVectors[w].direction, WIND_EFFECT_SPEED));
                     }
                 }
-
-                //debugger
 
                 curDrop.Add(velocity);
 
@@ -209,7 +207,7 @@ class Stroke{
                     let viewTransformPos;
 
                     curCloud.micropoints[m].Subtract(windVelocity);
-                    viewTransformPos = VectorMath.Add(curCloud.micropoints[m], cameraPos);
+                    viewTransformPos = VectorMath.Add(curCloud.micropoints[m], camera.position);
 
                     Utils.draw_circle(ctx,
                         viewTransformPos.x + xWave,
@@ -221,7 +219,7 @@ class Stroke{
         }
     }
 
-    drawDirt(ctx, cameraPos){
+    drawDirt(ctx, camera){
         const DIRT_MAX = 50;
         const DIRT_PER_SEG = 4;
         const DIRT_RADIUS = 20;
@@ -315,8 +313,8 @@ class Stroke{
 
             Utils.draw_circle(
                 ctx,
-                curDirt.x + cameraPos.x,
-                curDirt.y + cameraPos.y,
+                curDirt.x + camera.position.x,
+                curDirt.y + camera.position.y,
                 DIRT_RADIUS * Utils.ease_back(this.properties.sizeFac, 1.5)
             );
         }
@@ -329,8 +327,8 @@ class Stroke{
             let grassFac = i / this.properties.grasspoints.length;
             let dirtIdx = Math.floor(grassFac * (this.properties.dirtpoints.length - 1));
             let wetFac = this.properties.wetness_values[dirtIdx];
-            let viewTransformRoot = VectorMath.Add(curGrass.root, cameraPos);
-            let viewTransformTip = VectorMath.Add(curGrass.tip, cameraPos);
+            let viewTransformRoot = VectorMath.Add(curGrass.root, camera.position);
+            let viewTransformTip = VectorMath.Add(curGrass.tip, camera.position);
 
             ctx.beginPath();
             ctx.moveTo(viewTransformRoot.x, viewTransformRoot.y);
@@ -342,7 +340,7 @@ class Stroke{
         }
     }
 
-    drawWind(ctx, cameraPos){
+    drawWind(ctx, camera){
         const RAND_PARTICLE_OFFSET = 20;
         const MAX_PARTICLES = 20;
         const FRAME_BETWEEN_PARTICLES = 1;
@@ -398,7 +396,7 @@ class Stroke{
             let curParticle = this.properties.particles[i];
             let closestPointIdx = 0;
             let closestDistance = VectorMath.GetDistance(curParticle.point, this.points[0]);
-            let viewTransformPos = VectorMath.Add(curParticle.point, cameraPos);
+            let viewTransformPos = VectorMath.Add(curParticle.point, camera.position);
 
             //get nearest spline point (excluding last point)
             for (let p = 1; p < this.points.length - 1; p++){
@@ -426,7 +424,7 @@ class Stroke{
         }
     }
 
-    drawBirds(ctx, cameraPos){
+    drawBirds(ctx, camera){
         const BIRD_MAX = 50;
         const BIRD_PER_SEG = 500;
         const LIFETIME = 15000;
@@ -468,7 +466,7 @@ class Stroke{
             for (let i = 0; i < this.properties.birds.getLength(); i++){
                 let curBird = this.properties.birds.getBoid(i);
 
-                ctx.translate(curBird.position.x + cameraPos.x, curBird.position.y + cameraPos.y);
+                ctx.translate(curBird.position.x + camera.position.x, curBird.position.y + camera.position.y);
                 ctx.rotate(VectorMath.DirectionToAngle(curBird.direction) - (Math.PI / 2));
                 ctx.beginPath();
                 ctx.moveTo(-3, -3);
@@ -480,7 +478,7 @@ class Stroke{
         }
     }
 
-    drawDefault(ctx, cameraPos){
+    drawDefault(ctx, camera){
         //
     }
 }

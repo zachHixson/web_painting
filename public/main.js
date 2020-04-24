@@ -1,5 +1,6 @@
 import {Stroke} from "./Stroke.js";
 import {Vector2, VectorMath} from "./VectorLib.js";
+import {Camera} from "./Camera.js";
 
 /*
 How it works:
@@ -12,9 +13,10 @@ How it works:
 */
 
 const WORLD_DIMENSIONS = new Vector2(5000, 5000);
+const GRID_SIZE = 40;
 const TIME_FAC = 1;
 
-let camera = new Vector2(0, 0);
+let camera;
 let randomSeed;
 let compCanvas;
 let bgBufferCanvas;
@@ -34,6 +36,10 @@ window.onload = function(){
     compCanvas = document.getElementById("compositeCanvas");
     bgBufferCanvas = document.getElementById("backgroundBuffer");
     drawBufferCanvas = document.getElementById("drawBuffer");
+
+    camera = new Camera();
+    camera.bounds.x = compCanvas.width;
+    camera.bounds.y = compCanvas.height;
 
     bindEvents();
 
@@ -79,10 +85,6 @@ function main(){
         let compCtx = compCanvas.getContext("2d");
         let bgCtx = bgBufferCanvas.getContext("2d");
 
-        //draw bg
-        bgCtx.fillStyle = "#dfdfdf";
-        bgCtx.fillRect(0, 0, compCanvas.width, compCanvas.height);
-
         updateBGBuffer();
 
         //comp canvases
@@ -95,6 +97,46 @@ function main(){
 
 function updateBGBuffer(){
     let bgCtx = bgBufferCanvas.getContext("2d");
+
+    //draw bg
+    bgCtx.fillStyle = "#dfdfdf";
+    bgCtx.fillRect(0, 0, compCanvas.width, compCanvas.height);
+
+    //draw grid
+    bgCtx.strokeStyle = "#aca8ff";
+    bgCtx.lineWidth = 1;
+    for (let x = 0; x < (bgBufferCanvas.width / GRID_SIZE); x++){
+        let modValue = (bgBufferCanvas.width + (GRID_SIZE / 2))
+        let adjustedCameraX = camera.position.x % modValue;
+        let xPos;
+
+        if (camera.position.x < 0){
+            adjustedCameraX += modValue;
+        }
+
+        xPos = ((x * GRID_SIZE) + adjustedCameraX) % modValue;
+
+        bgCtx.beginPath();
+        bgCtx.moveTo(xPos, 0);
+        bgCtx.lineTo(xPos, bgBufferCanvas.height);
+        bgCtx.stroke();
+    }
+    for (let y = 0; y < (bgBufferCanvas.height / GRID_SIZE); y++){
+        let modValue = (bgBufferCanvas.height + (GRID_SIZE / 2))
+        let adjustedCameraY = camera.position.y % modValue;
+        let yPos;
+
+        if (camera.position.y < 0){
+            adjustedCameraY += modValue;
+        }
+
+        yPos = ((y * GRID_SIZE) + adjustedCameraY) % modValue;
+
+        bgCtx.beginPath();
+        bgCtx.moveTo(0, yPos);
+        bgCtx.lineTo(bgBufferCanvas.width, yPos);
+        bgCtx.stroke();
+    }
 
     for (let i = 0; i < strokes.length; i++){
         strokes[i].environment = strokes;
@@ -162,7 +204,7 @@ function commitBuffer(){
     let viewCorrectedPoints = [];
 
     for (let i = 0; i < mouseBuffer.points.length; i++){
-        viewCorrectedPoints.push(VectorMath.Subtract(mouseBuffer.points[i], camera));
+        viewCorrectedPoints.push(VectorMath.Subtract(mouseBuffer.points[i], camera.position));
     }
 
     if (mouseBuffer.points.length > 0) {
