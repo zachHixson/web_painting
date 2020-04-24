@@ -74,10 +74,18 @@ class VectorMath{
 
       static GetNormalized(_vector){
             var magnitude = this.GetMagnitude(_vector);
-            return new Vector2(
-                  _vector.x / magnitude,
-                  _vector.y / magnitude
-            );
+            if (magnitude > 0){
+                  return new Vector2(
+                        _vector.x / magnitude,
+                        _vector.y / magnitude
+                  );
+            }
+            else{
+                  return new Vector2(
+                        0,
+                        0
+                  )
+            }
       }
 
       static GetAngle(_v1, _v2){
@@ -94,6 +102,17 @@ class VectorMath{
             else{
                   return false;
             }
+      }
+
+      static DirectionToAngle(_vector){
+            return (Math.atan2(_vector.y, _vector.x));
+      }
+
+      static AngleToDirection(rad){
+            return new Vector2(
+                  Math.cos(rad),
+                  Math.sin(rad)
+            )
       }
 }
 
@@ -189,5 +208,9 @@ class Vector2{
 
       EqualTo(_newVector){
             return VectorMath.EqualTo(this, _newVector);
+      }
+
+      GetAngle(){
+            return VectorMath.DirectionToAngle(this);
       }
 }

@@ -12,6 +12,7 @@ How it works:
 */
 
 const WORLD_DIMENSIONS = new Vector2(5000, 5000);
+const TIME_FAC = 1;
 
 let camera = new Vector2(0, 0);
 let randomSeed;
@@ -19,6 +20,7 @@ let compCanvas;
 let bgBufferCanvas;
 let drawBufferCanvas;
 let mouseDown = false;
+let time = 0;
 let strokes = [];
 let mouseBuffer = {
     points : []
@@ -72,20 +74,22 @@ function bindEvents(){
 }
 
 function main(){
-    //get contexts
-    let compCtx = compCanvas.getContext("2d");
-    let bgCtx = bgBufferCanvas.getContext("2d");
+    if (time % TIME_FAC == 0){
+        //get contexts
+        let compCtx = compCanvas.getContext("2d");
+        let bgCtx = bgBufferCanvas.getContext("2d");
 
-    //draw bg
-    bgCtx.fillStyle = "#dfdfdf";
-    bgCtx.fillRect(0, 0, compCanvas.width, compCanvas.height);
+        //draw bg
+        bgCtx.fillStyle = "#dfdfdf";
+        bgCtx.fillRect(0, 0, compCanvas.width, compCanvas.height);
 
-    updateBGBuffer();
+        updateBGBuffer();
 
-    //comp canvases
-    compCtx.drawImage(bgBufferCanvas, 0, 0, bgBufferCanvas.width, bgBufferCanvas.height);
-    compCtx.drawImage(drawBufferCanvas, 0, 0, drawBufferCanvas.width, drawBufferCanvas.height);
-
+        //comp canvases
+        compCtx.drawImage(bgBufferCanvas, 0, 0, bgBufferCanvas.width, bgBufferCanvas.height);
+        compCtx.drawImage(drawBufferCanvas, 0, 0, drawBufferCanvas.width, drawBufferCanvas.height);
+    }
+    time++;
     window.requestAnimationFrame(function(){main()})
 }
 

@@ -1,4 +1,6 @@
 import {Vector2, VectorMath} from "./VectorLib.js";
+import { Boids } from "./Boids.js";
+import {Utils} from "./utils.js";
 export{Stroke};
 
 const STROKE_TYPES = [
@@ -31,7 +33,7 @@ class Stroke{
     static getRandomType(seed){
         seed = Math.round(seed * 100) + 7879;
         //return STROKE_TYPES[seed % STROKE_TYPES.length];
-        return STROKE_TYPES[0];
+        return STROKE_TYPES[3];
     }
 
     advanceTime(){
@@ -57,6 +59,9 @@ class Stroke{
                 break;
             case "wind":
                 this.drawWind(ctx, cameraPos);
+                break;
+            case "birds":
+                this.drawBirds(ctx, cameraPos);
                 break;
             default:
                 this.drawDefault(ctx, cameraPos);
@@ -85,7 +90,7 @@ class Stroke{
         //initialize stroke
         if (this.properties == null){
             let cloudCount = Math.min((CLOUD_PER_SEG * this.points.length), CLOUD_MAX);
-            let sampledSpline = multisample_spline(this.points, cloudCount);
+            let sampledSpline = Utils.multisample_spline(this.points, cloudCount);
 
             this.properties = {
                 clouds : [],
@@ -101,8 +106,8 @@ class Stroke{
                 for (let m = 0; m < Math.floor(Math.random() * MICROPOINT_MAX); m++){
                     micropoints.push(
                         new Vector2(
-                            sampledSpline[i].x + (pos_neg_rand() * CLOUD_RADIUS),
-                            sampledSpline[i].y + pos_neg_rand() * CLOUD_RADIUS
+                            sampledSpline[i].x + (Utils.pos_neg_rand() * CLOUD_RADIUS),
+                            sampledSpline[i].y + (Utils.pos_neg_rand() * CLOUD_RADIUS)
                         )
                     );
                 }
@@ -149,7 +154,7 @@ class Stroke{
             ctx.lineWidth = 2;
             for (let i = 0; i < RAIN_PER_FRAME; i++){
                 this.properties.raindrops.push(
-                    sample_spline(this.points, Math.random())
+                    Utils.sample_spline(this.points, Math.random())
                 );
             }
 
@@ -206,10 +211,10 @@ class Stroke{
                     curCloud.micropoints[m].Subtract(windVelocity);
                     viewTransformPos = VectorMath.Add(curCloud.micropoints[m], cameraPos);
 
-                    draw_circle(ctx,
+                    Utils.draw_circle(ctx,
                         viewTransformPos.x + xWave,
                         viewTransformPos.y + yWave,
-                        MICROPOINT_RAD * ease_back(this.properties.sizeFac, 1.8)
+                        MICROPOINT_RAD * Utils.ease_back(this.properties.sizeFac, 1.8)
                     );
                 }
             }
@@ -234,8 +239,8 @@ class Stroke{
         if (this.properties == null){
             let sampleCount = Math.min(DIRT_PER_SEG * this.points.length, DIRT_MAX);
             let grassCount = Math.min(GRASS_PER_SEG * this.points.length, GRASS_MAX);
-            let sampledSpline = multisample_spline(this.points, sampleCount);
-            let grassSamples = multisample_spline(this.points, grassCount);
+            let sampledSpline = Utils.multisample_spline(this.points, sampleCount);
+            let grassSamples = Utils.multisample_spline(this.points, grassCount);
 
             this.properties = {
                 dirtpoints : sampledSpline,
@@ -252,12 +257,12 @@ class Stroke{
                 this.properties.grasspoints.push(
                     {
                         root : new Vector2(
-                            grassSamples[i].x + (pos_neg_rand() * GRASS_POS_RAND),
+                            grassSamples[i].x + (Utils.pos_neg_rand() * GRASS_POS_RAND),
                             grassSamples[i].y - (DIRT_RADIUS * GRASS_OFFSET),
                         ),
                         tip : new Vector2(
-                            (pos_neg_rand() * GRASS_POS_RAND),
-                            (GRASS_HEIGHT + (pos_neg_rand() * GRASS_HEIGHT_RAND)) - (DIRT_RADIUS * GRASS_OFFSET),
+                            (Utils.pos_neg_rand() * GRASS_POS_RAND),
+                            (GRASS_HEIGHT + (Utils.pos_neg_rand() * GRASS_HEIGHT_RAND)) - (DIRT_RADIUS * GRASS_OFFSET),
                         )
                     }
                 )
@@ -302,17 +307,17 @@ class Stroke{
 
 
             //draw dirt
-            ctx.fillStyle = format_rgb(
-                lerp(DRY_COLOR[0], WET_COLOR[0], this.properties.wetness_values[i]),
-                lerp(DRY_COLOR[1], WET_COLOR[1], this.properties.wetness_values[i]),
-                lerp(DRY_COLOR[2], WET_COLOR[2], this.properties.wetness_values[i])
+            ctx.fillStyle = Utils.format_rgb(
+                Utils.lerp(DRY_COLOR[0], WET_COLOR[0], this.properties.wetness_values[i]),
+                Utils.lerp(DRY_COLOR[1], WET_COLOR[1], this.properties.wetness_values[i]),
+                Utils.lerp(DRY_COLOR[2], WET_COLOR[2], this.properties.wetness_values[i])
             );
 
-            draw_circle(
+            Utils.draw_circle(
                 ctx,
                 curDirt.x + cameraPos.x,
                 curDirt.y + cameraPos.y,
-                DIRT_RADIUS * ease_back(this.properties.sizeFac, 1.5)
+                DIRT_RADIUS * Utils.ease_back(this.properties.sizeFac, 1.5)
             );
         }
 
@@ -369,8 +374,8 @@ class Stroke{
 
         //Spawn particles
         if (this.properties.particle_timer > FRAME_BETWEEN_PARTICLES){
-            let splinePoint = sample_spline(this.points, Math.random());
-            splinePoint.AddScalar(pos_neg_rand() * RAND_PARTICLE_OFFSET);
+            let splinePoint = Utils.sample_spline(this.points, Math.random());
+            splinePoint.AddScalar(Utils.pos_neg_rand() * RAND_PARTICLE_OFFSET);
             this.properties.particles.push({
                 point : splinePoint,
                 direction : new Vector2(0, 0)
@@ -422,65 +427,43 @@ class Stroke{
     }
 
     drawBirds(ctx, cameraPos){
-        const BIRD_MAX = 20;
+        const BIRD_MAX = 30;
+        const BIRD_PER_SEG = 2;
+
+        let birdCount = Math.min(BIRD_PER_SEG * this.points.length, BIRD_MAX)
 
         if (this.properties == null){
-            let spawnPoints = multisample_spline(this.points, BIRD_MAX);
+            let spawnPoints = Utils.multisample_spline(this.points, birdCount);
+            let directions = Utils.get_directions_from_spline(spawnPoints);
 
             this.properties = {
-                birds : []
+                birds : new Boids()
             }
 
-            for (let i = 0; i < BIRD_MAX; i++){
-                //
+            for (let i = 0; i < spawnPoints.length; i++){
+                this.properties.birds.addBoid(spawnPoints[i], directions[i]);
             }
+        }
+
+        this.properties.birds.update();
+
+        //draw birds
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        for (let i = 0; i < this.properties.birds.length; i++){
+            let curBird = this.properties.birds.getBoid(i);
+            
+            ctx.beginPath();
+            ctx.moveTo(curBird.position.x, curBird.position.y);
+            ctx.lineTo(
+                curBird.position.x + (curBird.direction.x * 10),
+                curBird.position.y + (curBird.direction.y * 10)
+            );
+            ctx.stroke();
         }
     }
 
     drawDefault(ctx, cameraPos){
         //
     }
-}
-
-function draw_circle(ctx, x, y, r){
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2, false); //draws arc (x, y, radius, start arc, end arc, reverse start/end)
-    ctx.fill();
-}
-
-function ease_back(x, overshoot){
-    return 1 + (overshoot + 1) * Math.pow(x-1, 3) + overshoot * Math.pow(x-1, 2);
-}
-
-function pos_neg_rand(){
-    return (Math.random() * 2) - 1;
-}
-
-function lerp(a, b, f){
-    return a + f * (b - a);
-}
-
-function sample_spline(spline, fac){
-    let splinePos = fac * spline.length;
-    let splinePoint = Math.min(Math.floor(splinePos), spline.length - 2);
-    let subPos = splinePos % 1;
-    return new Vector2(
-            lerp(spline[splinePoint].x, spline[splinePoint + 1].x, subPos),
-            lerp(spline[splinePoint].y, spline[splinePoint + 1].y, subPos)
-    );
-}
-
-function multisample_spline(spline, samples){
-    let newSpline = [];
-
-    for (let i = 0; i < samples - 1; i++){
-        let splineFac = i / samples;
-        newSpline.push(sample_spline(spline, splineFac));
-    }
-
-    return newSpline;
-}
-
-function format_rgb(r, g, b){
-    return "rgb(" + r + "," + g + "," + b + ")";
 }
