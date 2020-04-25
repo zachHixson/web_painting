@@ -32,7 +32,7 @@ class Stroke{
 
     static getRandomType(seed){
         seed = Math.round(seed * 100) + 7879;
-        //return STROKE_TYPES[seed % STROKE_TYPES.length];
+        return STROKE_TYPES[seed % STROKE_TYPES.length];
         return STROKE_TYPES[3];
     }
 
@@ -262,7 +262,7 @@ class Stroke{
             };
 
             for (let i = 0; i < sampledSpline.length; i++){
-                this.properties.wetness_values.push(1);
+                this.properties.wetness_values.push(0);
             }
 
             for (let i = 0; i < grassSamples.length; i++){

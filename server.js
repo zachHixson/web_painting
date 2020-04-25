@@ -2,7 +2,7 @@ const express = require('express');
 const socket = require('socket.io');
 const fs = require('fs');
 
-const STROKE_PATH = "./strokes.json";
+const STROKE_PATH = "./save/strokes.json";
 const MAX_STROKES = 100;
 
 var app = express();
