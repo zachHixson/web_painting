@@ -33,7 +33,7 @@ class Stroke{
     static getRandomType(seed){
         seed = Math.round(seed * 100) + 7879;
         //return STROKE_TYPES[seed % STROKE_TYPES.length];
-        return STROKE_TYPES[0];
+        return STROKE_TYPES[3];
     }
 
     advanceTime(){
@@ -72,7 +72,7 @@ class Stroke{
         const CLOUD_MAX = 100;
         const CLOUD_RADIUS = 10;
         const CLOUD_PER_SEG = 5;
-        const CLOUD_LIFETIME = 5000;
+        const CLOUD_LIFETIME = 10000;
         const MICROPOINT_MAX = 20;
         const MICROPOINT_RAD = 10;
         const WIGGLE_SPEED = 0.05;
@@ -167,10 +167,7 @@ class Stroke{
                 let viewTransformPos = VectorMath.Add(curDrop, camera.position);
                 let velocity = RAIN_DIRECTION;
 
-                if (
-                    viewTransformPos.x >= 0 && viewTransformPos.x <= camera.bounds.x &&
-                    viewTransformPos.y >= 0 && viewTransformPos.y <= camera.bounds.y
-                ){
+                if (this.checkBounds(viewTransformPos, camera.bounds)){
                     //factor in wind
                     for (let w = 0; w < windVectors.length; w++){
                         if (VectorMath.GetDistance(windVectors[w].point, curDrop) < WIND_EFFECT_DISTANCE){
@@ -195,34 +192,34 @@ class Stroke{
             for (let i = 0; i < this.properties.clouds.length; i++){
                 let curCloud = this.properties.clouds[i];
                 let windVelocity = new Vector2(0, 0);
+                let cloudViewTransformPos = VectorMath.Add(curCloud.position, camera.position);
 
-                //factor in wind
-                for (let w = 0; w < windVectors.length; w++){
-                    if (VectorMath.GetDistance(windVectors[w].point, curCloud.position) < WIND_EFFECT_DISTANCE){
-                        windVelocity.Add(windVectors[w].direction);
+                if (this.checkBounds(cloudViewTransformPos, camera.bounds)){
+                    //factor in wind
+                    for (let w = 0; w < windVectors.length; w++){
+                        if (VectorMath.GetDistance(windVectors[w].point, curCloud.position) < WIND_EFFECT_DISTANCE){
+                            windVelocity.Add(windVectors[w].direction);
+                        }
                     }
-                }
 
-                windVelocity.GetNormalized();
-                windVelocity.Scale(WIND_EFFECT_SPEED * WIND_EFFECT_ON_CLOUD);
+                    windVelocity.GetNormalized();
+                    windVelocity.Scale(WIND_EFFECT_SPEED * WIND_EFFECT_ON_CLOUD);
 
-                for (let m = 0; m < curCloud.micropoints.length; m++){
-                    let xWave = Math.sin(curCloud.micropoints[m].x + (this.time * WIGGLE_SPEED) + 2574);
-                    let yWave = Math.sin(curCloud.micropoints[m].y + (this.time * WIGGLE_SPEED) + 2589);
-                    let viewTransformPos;
+                    for (let m = 0; m < curCloud.micropoints.length; m++){
+                        let xWave = Math.sin(curCloud.micropoints[m].x + (this.time * WIGGLE_SPEED) + 2574);
+                        let yWave = Math.sin(curCloud.micropoints[m].y + (this.time * WIGGLE_SPEED) + 2589);
+                        let viewTransformPos;
 
-                    curCloud.micropoints[m].Subtract(windVelocity);
-                    viewTransformPos = VectorMath.Add(curCloud.micropoints[m], camera.position);
+                        curCloud.micropoints[m].Subtract(windVelocity);
+                        viewTransformPos = VectorMath.Add(curCloud.micropoints[m], camera.position);
 
-                    if (
-                        viewTransformPos.x >= 0 && viewTransformPos.x <= camera.bounds.x &&
-                        viewTransformPos.y >= 0 && viewTransformPos.y <= camera.bounds.y
-                    ){
-                        Utils.draw_circle(ctx,
-                            viewTransformPos.x + xWave,
-                            viewTransformPos.y + yWave,
-                            MICROPOINT_RAD * Utils.ease_back(this.properties.sizeFac, 1.8)
-                        );
+                        if (this.checkBounds(viewTransformPos, camera.bounds)){
+                            Utils.draw_circle(ctx,
+                                viewTransformPos.x + xWave,
+                                viewTransformPos.y + yWave,
+                                MICROPOINT_RAD * Utils.ease_back(this.properties.sizeFac, 1.8)
+                            );
+                        }
                     }
                 }
             }
@@ -244,7 +241,7 @@ class Stroke{
         const GRASS_HEIGHT_RAND = 5;
         const GRASS_HEIGHT = 30;
         const GRASS_WIGGLE_SPEED = 0.02;
-        const LIFETIME = 10000;
+        const LIFETIME = 60000;
 
         let time = new Date().getTime();
         let age = time - this.creationTime;
@@ -265,7 +262,7 @@ class Stroke{
             };
 
             for (let i = 0; i < sampledSpline.length; i++){
-                this.properties.wetness_values.push(0);
+                this.properties.wetness_values.push(1);
             }
 
             for (let i = 0; i < grassSamples.length; i++){
@@ -302,49 +299,52 @@ class Stroke{
                 let curDirt = this.properties.dirtpoints[i];
                 let cloudPoints = [];
                 let nearestCloudDist;
+                let viewTransformPos = VectorMath.Add(curDirt, camera.position);
 
-                //Get all cloud points
-                for (let s = 0; s < this.environment.length; s++){
-                    if (this.environment[s].type == "cloud"){
-                        for (let p = 0; p < this.environment[s].points.length; p++){
-                            cloudPoints.push(this.environment[s].points[p]);
+                if (this.checkBounds(viewTransformPos, camera.bounds)){
+                    //Get all cloud points
+                    for (let s = 0; s < this.environment.length; s++){
+                        if (this.environment[s].type == "cloud"){
+                            for (let p = 0; p < this.environment[s].points.length; p++){
+                                cloudPoints.push(this.environment[s].points[p]);
+                            }
                         }
                     }
-                }
 
-                //get nearest cloud point distance
-                for (let p = 0; p < cloudPoints.length; p++){
-                    let distance = VectorMath.GetDistance(curDirt, cloudPoints[p]);
+                    //get nearest cloud point distance
+                    for (let p = 0; p < cloudPoints.length; p++){
+                        let distance = VectorMath.GetDistance(curDirt, cloudPoints[p]);
 
-                    if (
-                            nearestCloudDist == null ||
-                            (
-                                distance < nearestCloudDist &&
-                                cloudPoints[p].y < curDirt.y
-                            )
-                    ){
-                        nearestCloudDist = distance;
+                        if (
+                                nearestCloudDist == null ||
+                                (
+                                    distance < nearestCloudDist &&
+                                    cloudPoints[p].y < curDirt.y
+                                )
+                        ){
+                            nearestCloudDist = distance;
+                        }
                     }
+
+                    if (nearestCloudDist < RAIN_HEIGHT){
+                        this.properties.wetness_values[i] = Math.min(this.properties.wetness_values[i] + 0.001, 1)
+                    }
+
+
+                    //draw dirt
+                    ctx.fillStyle = Utils.format_rgb(
+                        Utils.lerp(DRY_COLOR[0], WET_COLOR[0], this.properties.wetness_values[i]),
+                        Utils.lerp(DRY_COLOR[1], WET_COLOR[1], this.properties.wetness_values[i]),
+                        Utils.lerp(DRY_COLOR[2], WET_COLOR[2], this.properties.wetness_values[i])
+                    );
+
+                    Utils.draw_circle(
+                        ctx,
+                        viewTransformPos.x,
+                        viewTransformPos.y,
+                        DIRT_RADIUS * Utils.ease_back(this.properties.sizeFac, 1.5)
+                    );
                 }
-
-                if (nearestCloudDist < RAIN_HEIGHT){
-                    this.properties.wetness_values[i] = Math.min(this.properties.wetness_values[i] + 0.001, 1)
-                }
-
-
-                //draw dirt
-                ctx.fillStyle = Utils.format_rgb(
-                    Utils.lerp(DRY_COLOR[0], WET_COLOR[0], this.properties.wetness_values[i]),
-                    Utils.lerp(DRY_COLOR[1], WET_COLOR[1], this.properties.wetness_values[i]),
-                    Utils.lerp(DRY_COLOR[2], WET_COLOR[2], this.properties.wetness_values[i])
-                );
-
-                Utils.draw_circle(
-                    ctx,
-                    curDirt.x + camera.position.x,
-                    curDirt.y + camera.position.y,
-                    DIRT_RADIUS * Utils.ease_back(this.properties.sizeFac, 1.5)
-                );
             }
 
             //Process grass
@@ -358,13 +358,15 @@ class Stroke{
                 let viewTransformRoot = VectorMath.Add(curGrass.root, camera.position);
                 let viewTransformTip = VectorMath.Add(curGrass.tip, camera.position);
 
-                ctx.beginPath();
-                ctx.moveTo(viewTransformRoot.x, viewTransformRoot.y);
-                ctx.lineTo(
-                    viewTransformRoot.x + (Math.sin(viewTransformTip.x + (this.time * GRASS_WIGGLE_SPEED)) * wetFac),
-                    viewTransformRoot.y - (viewTransformTip.y * wetFac)
-                )
-                ctx.stroke();
+                if (this.checkBounds(viewTransformRoot, camera.bounds)){
+                    ctx.beginPath();
+                    ctx.moveTo(viewTransformRoot.x, viewTransformRoot.y);
+                    ctx.lineTo(
+                        viewTransformRoot.x + (Math.sin(curGrass.tip.x + (this.time * GRASS_WIGGLE_SPEED)) * wetFac),
+                        viewTransformRoot.y - (curGrass.tip.y * wetFac)
+                    )
+                    ctx.stroke();
+                }
             }
         }
     }
@@ -401,6 +403,7 @@ class Stroke{
 
         //Spawn particles
         if (this.properties.particle_timer > FRAME_BETWEEN_PARTICLES){
+            if (this.points == undefined){debugger}
             let splinePoint = Utils.sample_spline(this.points, Math.random());
             splinePoint.AddScalar(Utils.pos_neg_rand() * RAND_PARTICLE_OFFSET);
             this.properties.particles.push({
@@ -427,10 +430,7 @@ class Stroke{
             let closestDistance = VectorMath.GetDistance(curParticle.point, this.points[0]);
             let viewTransformPos = VectorMath.Add(curParticle.point, camera.position);
 
-            if (
-                viewTransformPos.x >= 0 && viewTransformPos.x <= camera.bounds.x &&
-                viewTransformPos.y >= 0 && viewTransformPos.y <= camera.bounds.y
-            ){
+            if (this.checkBounds(viewTransformPos, camera.bounds)){
                 //get nearest spline point (excluding last point)
                 for (let p = 1; p < this.points.length - 1; p++){
                     let checkDist = VectorMath.GetDistance(curParticle.point, this.points[p])
@@ -501,10 +501,7 @@ class Stroke{
                 let curBird = this.properties.birds.getBoid(i);
                 let viewTransformPos = VectorMath.Add(curBird.position, camera.position)
 
-                if (
-                    viewTransformPos.x >= 0 && viewTransformPos.x <= camera.bounds.x &&
-                    viewTransformPos.y >= 0 && viewTransformPos.y <= camera.bounds.y
-                ){
+                if (this.checkBounds(viewTransformPos, camera.bounds)){
                     ctx.translate(curBird.position.x + camera.position.x, curBird.position.y + camera.position.y);
                     ctx.rotate(VectorMath.DirectionToAngle(curBird.direction) - (Math.PI / 2));
                     ctx.beginPath();
@@ -520,5 +517,16 @@ class Stroke{
 
     drawDefault(ctx, camera){
         //
+    }
+
+    checkBounds(position, boundsVec){
+        if (
+            position.x >= 0 && position.x < boundsVec.x &&
+            position.y >= 0 && position.y < boundsVec.y
+        ){
+            return true;
+        }
+
+        return false;
     }
 }

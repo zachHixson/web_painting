@@ -13,9 +13,15 @@ How it works:
         - mousebuffer is broadcast to other clients to be added
 */
 
-const WORLD_DIMENSIONS = new Vector2(5000, 5000);
+const WORLD_DIMENSIONS = new Vector2(2000, 2000);
 const GRID_SIZE = 40;
 const TIME_FAC = 1;
+const MAX_STROKES = {
+    CLOUDS : 10,
+    DIRT : 10,
+    WIND : 20,
+    BIRDS : 15
+};
 
 let camera;
 let randomSeed;
@@ -269,6 +275,8 @@ function receiveStrokes(strokeArr){
             strokeArr[i].points
         ));
     }
+
+    cullStrokes();
 }
 
 function commitBuffer(){
@@ -280,7 +288,7 @@ function commitBuffer(){
         viewCorrectedPoints.push(VectorMath.Subtract(mouseBuffer.points[i], camera.position));
     }
 
-    if (mouseBuffer.points.length > 0) {
+    if (mouseBuffer.points.length > 1) {
         let newStroke = new Stroke(Stroke.getRandomType(randomSeed), viewCorrectedPoints);
         newStroke.environment = strokes;
         newStroke.drawStroke(bgCtx, camera);
@@ -290,6 +298,9 @@ function commitBuffer(){
 
     mouseBuffer.points = [];
     drawCtx.clearRect(0, 0, drawBufferCanvas.width, drawBufferCanvas.height);
+    cullStrokes();
+    
+    document.getElementById("bgm").play();
 }
 
 function newStroke(stroke){
@@ -297,7 +308,51 @@ function newStroke(stroke){
         stroke.type,
         stroke.points
     ));
-    console.log(strokes)
+    cullStrokes();
+}
+
+function cullStrokes(){
+    let cloudIdxs = [];
+    let dirtIdxs = [];
+    let windIdxs = [];
+    let birdIdxs = [];
+
+    for (let i = 0; i < strokes.length; i++){
+        switch(strokes[i].type){
+            case "cloud":
+                cloudIdxs.push(i);
+
+                if (cloudIdxs.length > MAX_STROKES.CLOUDS){
+                    strokes[cloudIdxs[0]].isAlive = false;
+                    cloudIdxs.shift();
+                }
+                break;
+            case "dirt":
+                dirtIdxs.push(i)
+
+                if (dirtIdxs.length > MAX_STROKES.DIRT){
+                    strokes[dirtIdxs[0]].isAlive = false;
+                    dirtIdxs.shift();
+                }
+                break;
+            case "wind":
+                windIdxs.push(i);
+
+                if (windIdxs.length > MAX_STROKES.WIND){
+                    strokes[windIdxs[0]].isAlive = false;
+                    windIdxs.shift();
+                }
+                break;
+            case "birds":
+                birdIdxs.push(i);
+
+                if (birdIdxs.length > MAX_STROKES.BIRDS){
+                    strokes[birdIdxs[0]].isAlive = false;
+                    birdIdxs.shift();
+                }
+                break;
+        }
+    }
 }
 
 function draw_circle(ctx, x, y, r){
