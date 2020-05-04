@@ -26,7 +26,6 @@ fs.readFile(STROKE_PATH, (err, data) => {
     }
     
     strokes = JSON.parse(data);
-    console.log(strokes.strokes)
 })
 
 function newConnection(newSocket){
