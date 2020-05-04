@@ -12,5 +12,4 @@ The elements interact with each other in the following ways:
 1. Clone git repo
 2. run `npm install`
 3. Music file is not included due to copyright reasons, so you need to add `public/hcts.mp3` yourself
-4. Create an empty file called `public/strokes.json`
-5. to start run `npm start` which will start a local application on port 3000
+4. to start run `npm start` which will start a local application on port 3000
