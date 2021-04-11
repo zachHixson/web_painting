@@ -1,5 +1,5 @@
-# web_painting
-A web based application that will randomly assign a player an element (Clouds, Wind, Dirt, or Birds) when the page loads, and allow them to draw these elements on a shared canvas
+# Web Painting: Interactive Art Piece
+A web based application that will randomly assign a player an element (Clouds, Wind, Dirt, or Birds) when the page loads, and allow them to draw these elements on a shared canvas. The project was build over the course of a couple of days as an interactive art piece and therefore contains some rough edges.
 
 The elements interact with each other in the following ways:
 
